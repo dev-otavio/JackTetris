@@ -1,0 +1,23 @@
+class PaintR {
+  function void draw(int location) {
+	var int memAddress;
+	let memAddress = 16384+location;
+	do Memory.poke(memAddress+0, 0);
+	do Memory.poke(memAddress+32, 4094);
+	do Memory.poke(memAddress+64, 8190);
+	do Memory.poke(memAddress+96, 16382);
+	do Memory.poke(memAddress+128, 15390);
+	do Memory.poke(memAddress+160, 14366);
+	do Memory.poke(memAddress+192, 16382);
+	do Memory.poke(memAddress+224, 16382);
+	do Memory.poke(memAddress+256, 8190);
+	do Memory.poke(memAddress+288, 4094);
+	do Memory.poke(memAddress+320, 7966);
+	do Memory.poke(memAddress+352, 15902);
+	do Memory.poke(memAddress+384, 31774);
+	do Memory.poke(memAddress+416, 30750);
+	do Memory.poke(memAddress+448, 28702);
+	do Memory.poke(memAddress+480, 0);
+	return;
+  }
+}

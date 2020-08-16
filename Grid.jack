@@ -1,0 +1,130 @@
+class Grid {
+  field int lines, columns, size;
+  field Array array;
+
+  constructor Grid new(int ls, int cs) {
+	var int i;
+
+	let size = ls * cs;
+	let lines = ls;
+	let columns = cs;
+
+	let array = Array.new(size);
+	let i = 0;
+	while (i < size) {
+	  let array[i] = 0;
+	  let i = i + 1;
+	}
+
+	return this;
+  }
+
+  method int getLines() { return lines; }
+
+  method int getColumns() { return columns; }
+
+  method int getAt(int line, int column) {
+	var int l, c, index;
+
+	if (line > lines) { do Sys.error(1); }
+	if (column > columns) { do Sys.error(1); }
+
+	let l = line - 1;
+	let c = column - 1;
+	let index = (l * columns) + c;
+
+	return array[index];
+  }
+
+  method int setAt(int line, int column, int value) {
+	var int l, c, index;
+
+	if (line > lines) { do Sys.error(1); }
+	if (column > columns) { do Sys.error(1); }
+
+	let l = line - 1;
+	let c = column - 1;
+	let index = (l * columns) + c;
+
+	let array[index] = value;
+	return value;
+  }
+
+  method void removeLine(int line) {
+	var Array copy;
+	var int c, i;
+
+	if (line > lines) { do Sys.error(1); }
+
+	let copy = Array.new(size);
+	let i = 0;
+	while (i < columns) {
+	  let copy[i] = 0;
+	  let i = i + 1;
+	}
+
+	let c = 0;
+	while (c < size) {
+	  if (~((c / columns) = (line - 1))) {
+		let copy[i] = array[c];
+		let i = i + 1;
+	  }
+	  let c = c + 1;
+	}
+
+	// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvv//
+	do array.dispose();
+	let array = copy;
+	return;
+  }
+
+  method void removeColumn(int column) {
+	var Array copy;
+	var int c, i;
+	if (column > columns) { do Sys.error(1); }
+	let copy = Array.new(size);
+	let c = 0;
+	let i = 0;
+	while (c < size) {
+	  if (Mathx.mod(c, columns) = 0) {
+		let copy[c] = 0;
+		let c = c + 1;
+	  } else {
+		if (~(Mathx.mod(i, columns) = (column - 1))) {
+		  let copy[c] = array[i];
+		  let i = i + 1;
+		  let c = c + 1;
+		} else {
+		  let i = i + 1;
+		}
+	  }
+	}
+
+	let array = copy;
+	return;
+  }
+
+  method void print() {
+	var int l, c, v;
+	let l = 1;
+	while (l < (getLines() + 1)) {
+	  let c = 1;
+	  while (c < (getColumns() + 1)) {
+		let v = getAt(l, c);
+		if (~v) { do Output.printString(" "); }
+		do Output.printInt(v);
+		do Output.printString(" ");
+		let c = c + 1;
+	  }
+	  do Output.println();
+	  let l = l + 1;
+	}
+
+	return;
+  }
+
+  method void dispose() {
+	do array.dispose();
+	return;
+  }
+}

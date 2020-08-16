@@ -1,0 +1,44 @@
+class Mathx {
+  function int abs(int x) {
+	if (x < 0) {
+	  let x = -x;
+	}
+	return x;
+  }
+
+  /**
+   *@returns {int} A number in (0, range[ 
+   */
+  function int getReallyNaiveRandom(int seed, int range) {
+	var int s, e, v;
+	let s = 16384;
+	let e = 24576;
+	while (s < e) {
+	  let v = Memory.peek(s);
+	  if (v) {
+		return Mathx.mod(Mathx.abs(v) + seed, range);
+	  }
+	  let s = s + 1;
+	}
+	return  Mathx.mod(seed, range);
+  }
+
+  function int mod(int x, int y) {
+	var int px, py, d, r;
+	let px = Mathx.abs(x);
+	let py = Mathx.abs(y);
+
+	if (px < py) {
+	  let r = px;
+	} else {
+	  let d = px / y;
+	  let r = x - (d * y);
+	}
+
+	if (x < 0) {
+	  let r = -r;
+	}
+
+	return r;
+  }
+}

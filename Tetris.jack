@@ -1,0 +1,422 @@
+class Tetris {
+  field Grid grid;
+  field Bar bar;
+  field Box box;
+  field SNeg sneg;
+  field S s;
+  field T t;
+  field LNeg lneg;
+  field L l;
+  field int
+	lines,
+	columns,
+	size,
+	topOffset,
+	squareUnit,
+	interval,
+	blockTypes,
+	currentBlock,
+	points,
+	seed;
+
+  constructor Tetris new() {
+	let points = 0;
+	let blockTypes = 7;
+	let seed = 0;
+	let lines = 16;
+	let topOffset = 32;
+	let columns = 10;
+	let squareUnit = 10;
+	let interval = 400;
+	let size = lines * columns;
+	let grid = Grid.new(lines, columns);
+
+	let bar = Bar.new(this, 1, 5);
+	let box = Box.new(this, 1, 5);
+	let sneg = SNeg.new(this, 1, 5);
+	let s = S.new(this, 1, 5);
+	let t = T.new(this, 1, 5);
+	let lneg = LNeg.new(this, 1, 5);
+	let l = L.new(this, 1, 5);
+
+	return this;
+  }
+
+  method void incrementSeed() {
+	if (seed = 32666) {
+	  let seed = 1;
+	} else {
+	  let seed = seed + 1;
+	}
+	return;
+  }
+
+  method void startLoop() {
+	var char c;
+
+	do show();
+	do nextBlock();
+
+	while (true) {
+	  do incrementSeed();
+
+	  let c = Keyboard.keyPressed();
+
+	  if (c = 140) {
+		do terminate();
+	  }
+	  if (c = 130) {
+		do moveBlockLeft();
+		do incrementSeed();
+	  }
+	  if (c = 131) {
+		do rotateBlock();
+		do incrementSeed();
+	  }
+	  if (c = 132) {
+	  	do moveBlockRight();
+		do incrementSeed();
+	  }
+	  if (c = 133) {
+		do moveBlockDown();
+		do incrementSeed();
+	  }
+	  do Sys.wait(interval);
+	  do moveBlockDown();
+	}
+
+	return;
+  }
+
+  method void terminate() {
+	do showGameOver();
+	do Sys.halt();
+	return;
+  }
+
+  method boolean doesItWillFit(Array position) {
+	var int i, line, column;
+
+	let i = 0;
+	while (i < 8) {
+	  let line = position[i];
+	  let column = position[i + 1];
+
+	  if (line > lines) { return false; }
+	  if (column < 1) { return false; }
+	  if (column > columns) { return false; }
+	  if (line > 0) {
+		// A block might have part of it out of the top of the screen
+		if (grid.getAt(line, column)) { return false; }
+	  }
+
+
+	  let i = i + 2;
+	}
+
+	return true;
+  }
+
+  method void removeLastFullLine() {
+	var int line, column;
+	var boolean full;
+
+	let line = lines;
+	while (line > 0) {
+	  let full = true;
+	  let column = columns;
+
+	  while (full & (column > 0)) {
+		if (~grid.getAt(line, column)) {
+		  let full = false;
+		}
+		let column = column - 1;
+	  }
+
+	  if (full) {
+		do grid.removeLine(line);
+		let points = points + 100;
+
+		if (Mathx.mod(points, 1000) = 0) {
+		  if (interval > 100) {
+			let interval = interval - 25;
+		  }
+		}
+
+		if (points > 31000) {
+		  do Output.printString("YOU HAVE WON!");
+		  do terminate();
+		}
+
+		do show();
+		do Sys.wait(50);
+		do removeLastFullLine();
+	  }
+
+	  let line = line - 1;
+	}
+
+	return;
+  }
+
+  method void nextBlock() {
+	var Array p;
+
+	let currentBlock = Mathx.getReallyNaiveRandom(seed, blockTypes);
+
+	if (currentBlock = 0) {
+	  do bar.resetPosition();
+	  let p = bar.getPosition();
+	}
+	if (currentBlock = 1) {
+	  do box.resetPosition();
+	  let p = box.getPosition();
+	}
+	if (currentBlock = 2) {
+	  do sneg.resetPosition();
+	  let p = sneg.getPosition();
+	}
+	if (currentBlock = 3) {
+	  do s.resetPosition();
+	  let p = s.getPosition();
+	}
+	if (currentBlock = 4) {
+	  do t.resetPosition();
+	  let p = t.getPosition();
+	}
+	if (currentBlock = 5) {
+	  do lneg.resetPosition();
+	  let p = lneg.getPosition();
+	}
+	if (currentBlock = 6) {
+	  do l.resetPosition();
+	  let p = l.getPosition();
+	}
+
+	if (~doesItWillFit(p)) {
+	  do terminate();
+	} else {
+	  do showBlock(p);
+	}
+	return;
+  }
+
+  method void lockBlock(Array p) {
+	var int i, line, column;
+	let i = 0;
+	while (i < 8) {
+	  let line = p[i];
+	  let column = p[i + 1];
+	  do grid.setAt(line, column, -1);
+	  let i = i + 2;
+	}
+	return;
+  }
+
+  method void rotateBlock() {
+	if (currentBlock = 0) { do bar.rotate(); }
+	if (currentBlock = 1) { do box.rotate(); }
+	if (currentBlock = 2) { do sneg.rotate(); }
+	if (currentBlock = 3) { do s.rotate(); }
+	if (currentBlock = 4) { do t.rotate(); }
+	if (currentBlock = 5) { do lneg.rotate(); }
+	if (currentBlock = 6) { do l.rotate(); }
+	return;
+  }
+
+  method void moveBlockDown() {
+	var Array p;
+	var boolean hasMoved;
+	if (currentBlock = 0) {
+	  let hasMoved = bar.moveDown();
+	  let p = bar.getPosition();
+	}
+	if (currentBlock = 1) {
+	  let hasMoved = box.moveDown();
+	  let p = box.getPosition();
+	}
+	if (currentBlock = 2) {
+	  let hasMoved = sneg.moveDown();
+	  let p = sneg.getPosition();
+	}
+	if (currentBlock = 3) {
+	  let hasMoved = s.moveDown();
+	  let p = s.getPosition();
+	}
+	if (currentBlock = 4) {
+	  let hasMoved = t.moveDown();
+	  let p = t.getPosition();
+	}
+	if (currentBlock = 5) {
+	  let hasMoved = lneg.moveDown();
+	  let p = lneg.getPosition();
+	}
+	if (currentBlock = 6) {
+	  let hasMoved = l.moveDown();
+	  let p = l.getPosition();
+	}
+
+	if (~hasMoved) {
+	  do lockBlock(p);
+	  do removeLastFullLine();
+	  do show();
+	  do nextBlock();
+	}
+
+	return;
+  }
+
+  method void moveBlockLeft() {
+	if (currentBlock = 0) { do bar.moveLeft(); }
+	if (currentBlock = 1) { do box.moveLeft(); }
+	if (currentBlock = 2) { do sneg.moveLeft(); }
+	if (currentBlock = 3) { do s.moveLeft(); }
+	if (currentBlock = 4) { do t.moveLeft(); }
+	if (currentBlock = 5) { do lneg.moveLeft(); }
+	if (currentBlock = 6) { do l.moveLeft(); }
+	return;
+  }
+
+  method void moveBlockRight() {
+	if (currentBlock = 0) { do bar.moveRight(); }
+	if (currentBlock = 1) { do box.moveRight(); }
+	if (currentBlock = 2) { do sneg.moveRight(); }
+	if (currentBlock = 3) { do s.moveRight(); }
+	if (currentBlock = 4) { do t.moveRight(); }
+	if (currentBlock = 5) { do lneg.moveRight(); }
+	if (currentBlock = 6) { do l.moveRight(); }
+	return;
+  }
+
+  method void printGrid() {
+	do grid.print();
+	return;
+  }
+
+  method void show() {
+	var int l, c;
+	var boolean color;
+
+	let l = 1;
+	while (l < (grid.getLines() + 1)) {
+	  let c = 1;
+	  while (c < (grid.getColumns() + 1)) {
+
+		let color = ~(grid.getAt(l, c));
+
+		do Screen.setColor(color);
+		do drawRectangle(l, c, color);
+		let c = c + 1;
+
+	  }
+	  let l = l + 1;
+	}
+
+	do showPoints();
+	return;
+  }
+
+  method void drawRectangle(int line, int column, boolean color) {
+	var int
+	  xTopLeft,
+	  xTopRight,
+	  xBottomLeft,
+	  xBottomRight,
+	  yTopLeft,
+	  yTopRight,
+	  yBottomLeft,
+	  yBottomRight;
+
+	let xTopLeft = (column - 1) * squareUnit;
+	let xTopRight = column * squareUnit;
+	let xBottomLeft = xTopLeft;
+	let xBottomRight = xTopRight;
+
+	let yTopLeft = ((line - 1) * squareUnit) + topOffset;
+	let yTopRight = yTopLeft;
+	let yBottomLeft = ((line) * squareUnit) + topOffset;
+	let yBottomRight = yBottomLeft;
+
+	//print surface
+	do Screen.drawRectangle(xTopLeft, yTopLeft, xBottomRight, yBottomRight);
+	if (~color) {
+	  //print border
+	  do Screen.setColor(true);
+	  do Screen.drawLine(xTopLeft, yTopLeft, xTopRight, yTopRight);
+	  do Screen.drawLine(xBottomLeft, yBottomLeft, xBottomRight, yBottomRight);
+	  do Screen.drawLine(xTopLeft, yTopLeft, xBottomLeft, yBottomLeft);
+	  do Screen.drawLine(xTopRight, yTopRight, xBottomRight, yBottomRight);
+	}
+	return;
+  }
+
+  method void eraseBlock(Array position) {
+	var int i, line, column;
+
+	let i = 0;
+	while (i < 8) {
+	  let line = position[i];
+	  let column = position[i + 1];
+
+	  if ((line > 0) & (column > 0)) {
+		do Screen.setColor(true);
+		do drawRectangle(line, column, true);
+	  }
+
+	  let i = i + 2;
+	}
+
+	return;
+  }
+
+  method void showBlock(Array position) {
+	var int i, line, column;
+	let i = 0;
+	while (i < 8) {
+	  let line = position[i];
+	  let column = position[i + 1];
+
+	  if ((line > 0) & (column > 0)) {
+		do Screen.setColor(false);
+		do drawRectangle(line, column, false);
+	  }
+
+	  let i = i + 2;
+	}
+
+	return;
+  }
+
+  method void showPoints() {
+	do Output.moveCursor(0, 0);
+	do Output.printString("                                      ");
+	do Output.moveCursor(0, 0);
+	do Output.printString("POINTS: ");
+	do Output.printInt(points);
+	do Output.println();
+	return;
+  }
+
+  method void showGameOver () {
+	var int i, j;
+	let i = 1600;
+	let j = 898;
+	do PaintG.draw(i);
+	do PaintA.draw(i + 1);
+	do PaintM.draw(i + 2);
+	do PaintE.draw(i + 3);
+
+	do PaintO.draw(i + j);
+	do PaintV.draw(i + j + 1);
+	do PaintE.draw(i + j + 2);
+	do PaintR.draw(i + j + 3);
+
+	return;
+  }
+
+  method void dispose() {
+	do grid.dispose();
+	do bar.dispose();
+	return;
+  }
+}

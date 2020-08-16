@@ -1,0 +1,80 @@
+class Box {
+  field Array array;
+  field Tetris tetris;
+  field int line, column, size;
+
+  constructor Box new(Tetris t, int l, int c) {
+	let tetris = t;
+	let line = l;
+	let column = c;
+	let size = 8;
+	let array = Array.new(size);
+
+	do resetPosition();
+	return this;
+  }
+
+  method void resetPosition() {
+	let array[0] = line;
+	let array[1] = column;
+	let array[2] = line;
+	let array[3] = column + 1;
+	let array[4] = line + 1;
+	let array[5] = column;
+	let array[6] = line + 1;
+	let array[7] = column + 1;
+
+	return;
+  }
+
+  method void print() {
+	do Output.printString("Box");
+	do Block.print(array, size);
+	return;
+  }
+
+  method Array getPosition() {
+	return array;
+  }
+
+  method boolean update(Array a) {
+	if (tetris.doesItWillFit(a)) {
+	  do tetris.eraseBlock(array);
+	  do array.dispose();
+	  let array = a;
+	  do tetris.showBlock(array);
+	  return true;
+	}
+	return false;
+  }
+
+  method boolean moveRight() {
+	var int i;
+	var Array copy;
+	let copy = Block.moveRight(array, size);
+	return update(copy);
+  }
+
+  method boolean moveLeft() {
+	var int i;
+	var Array copy;
+	let copy = Block.moveLeft(array, size);
+	return update(copy);
+  }
+
+  method boolean moveDown() {
+	var int i;
+	var Array copy;
+	let copy = Block.moveDown(array, size);
+	return update(copy);
+  }
+
+  method boolean rotate() {
+	return true;
+  }
+
+  method void dispose() {
+	do array.dispose();
+	return;
+  }
+}

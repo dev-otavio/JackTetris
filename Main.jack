@@ -1,0 +1,27 @@
+class Main {
+
+  function void main() {
+	var Tetris t;
+	var char c;
+	
+	let t = Tetris.new();
+
+	do Output.moveCursor(12, 0);
+	do Output.printString("    Press Enter to start.");
+	do Output.println();
+	do Output.printString("    Any other key to leave.");
+	do Sys.wait(100);
+	let c = Keyboard.readChar();
+	if (c = 128 /* enter */) {
+	  do Screen.clearScreen();
+	  do t.startLoop();
+	} else {
+	  do Screen.clearScreen();
+	  do Output.moveCursor(12, 0);
+	  do Output.printString("    Done. Bye.");
+	  do Sys.halt();
+	}
+	return;
+  }
+
+}
