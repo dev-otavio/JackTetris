@@ -1,80 +1,231 @@
 class Box {
-  field Array array;
-  field Tetris tetris;
-  field int line, column, size;
-
-  constructor Box new(Tetris t, int l, int c) {
-	let tetris = t;
-	let line = l;
-	let column = c;
-	let size = 8;
-	let array = Array.new(size);
-
-	do resetPosition();
+  field Array p;
+  field boolean debug;
+  constructor Box new(boolean d) {
+	let p = Array.new(8);
+	let debug = d;
 	return this;
   }
 
-  method void resetPosition() {
-	let array[0] = line;
-	let array[1] = column;
-	let array[2] = line;
-	let array[3] = column + 1;
-	let array[4] = line + 1;
-	let array[5] = column;
-	let array[6] = line + 1;
-	let array[7] = column + 1;
+  method void inspect() {
+	var int i, end;
 
-	return;
-  }
-
-  method void print() {
-	do Output.printString("Box");
-	do Block.print(array, size);
-	return;
-  }
-
-  method Array getPosition() {
-	return array;
-  }
-
-  method boolean update(Array a) {
-	if (tetris.doesItWillFit(a)) {
-	  do tetris.eraseBlock(array);
-	  do array.dispose();
-	  let array = a;
-	  do tetris.showBlock(array);
-	  return true;
+	do Output.moveCursor(10, 20);
+	let i = 20;
+	while (i < 64) {
+	  do Output.printChar(32);
+	  let i = i + 1;
 	}
-	return false;
+	
+	do Output.moveCursor(10, 20);
+	let i = 0;
+	let end = 8;
+	do Output.moveCursor(10, 20);
+	do Output.printString("Box[");
+	while (i < end) {
+	  do Output.printInt(p[i]);
+	  do Output.printChar(32);
+	  let i = i + 1;
+	}
+	do Output.printString("]");
+	return;
   }
 
-  method boolean moveRight() {
-	var int i;
-	var Array copy;
-	let copy = Block.moveRight(array, size);
-	return update(copy);
+  method boolean reset(int l, int c) {
+	var int ok;
+	let p[0] = l;
+	let p[1] = c;
+	let p[2] = l;
+	let p[3] = c + 1;
+	let p[4] = l + 1;
+	let p[5] = c;
+	let p[6] = l + 1;
+	let p[7] = c + 1;
+
+	let ok = Tetris.allowMovement(p[0], p[1],
+								  p[2], p[3],
+								  p[4], p[5],
+								  p[6], p[7]);
+
+	if (ok) { do paint(); }
+
+	return ok;
   }
 
-  method boolean moveLeft() {
-	var int i;
-	var Array copy;
-	let copy = Block.moveLeft(array, size);
-	return update(copy);
-  }
+  method void displace(int v, int h) {
+	let p[0] = p[0] + v;
+	let p[1] = p[1] + h;
+	let p[2] = p[2] + v;
+	let p[3] = p[3] + h;
+	let p[4] = p[4] + v;
+	let p[5] = p[5] + h;
+	let p[6] = p[6] + v;
+	let p[7] = p[7] + h;
 
-  method boolean moveDown() {
-	var int i;
-	var Array copy;
-	let copy = Block.moveDown(array, size);
-	return update(copy);
+	return;
   }
 
   method boolean rotate() {
 	return true;
   }
 
+  method boolean moveDown() {
+	var boolean ok, horizontal;
+	var int i;
+
+	let ok = Tetris.allowMovement(p[0] + 1, p[1],
+								  p[2] + 1, p[3],
+								  p[4] + 1, p[5],
+								  p[6] + 1, p[7]);
+
+	if (ok) {
+	  do erase2(p[0], p[1], p[2], p[3]);
+	  do displace(1, 0);
+	  if (debug) { do inspect(); }
+	  do paint2(p[4], p[5], p[6], p[7]);
+	}
+
+	return ok;
+  }
+
+  method boolean moveLeft() {
+	return sideStep(-1, 2, 3, 6, 7, 0, 1, 4, 5);
+  }
+
+  method boolean moveRight() {
+	return sideStep(1, 0, 1, 4, 5, 2, 3, 6, 7);
+  }
+
+  /**
+   *@private
+   */
+  method boolean sideStep(int h, int el1, int ec1, int el2, int ec2, int pl1, int pc1, int pl2, int pc2) {
+	var boolean ok, horizontal;
+	let ok = Tetris.allowMovement(p[0], p[1] + h,
+								  p[2], p[3] + h,
+								  p[4], p[5] + h,
+								  p[6], p[7] + h);
+
+	if (ok) {
+	  do erase2(p[el1], p[ec1], p[el2], p[ec2]);
+	  do displace(0, h);
+	  if (debug) { do inspect(); }
+	  do paint2(p[pl1], p[pc1], p[pl2], p[pc2]);
+	}
+
+	return ok;
+  }
+
+  method void paint() {
+	var int l, c, i;
+
+	let i = 0;
+	while (i < 8) {
+	  let l = p[i];
+	  let c = p[i + 1];
+	  let i = i + 2;
+	  if ((l > 0) & (c > 0)) {
+		do UI.paintSquare(l, c);
+	  }
+	}
+
+	return;
+  }
+
+  /**@private*/
+  method void paint1(int l, int c) {
+	if ((l > 0) & (c > 0)) {
+	  do UI.paintSquare(l, c);
+	}
+	return;
+  }
+
+  /**@private*/
+  method void paint2(int l1, int c1, int l2, int c2) {
+	if ((l1 > 0) & (c1 > 0)) {
+	  do UI.paintSquare(l1, c1);
+	}
+
+	if ((l2 > 0) & (c2 > 0)) {
+	  do UI.paintSquare(l2, c2);
+	}
+
+	return;
+  }
+
+  /**@private*/
+  method void paint3(int l1, int c1, int l2, int c2, int l3, int c3) {
+	if ((l1 > 0) & (c1 > 0)) {
+	  do UI.paintSquare(l1, c1);
+	}
+
+	if ((l2 > 0) & (c2 > 0)) {
+	  do UI.paintSquare(l2, c2);
+	}
+
+	if ((l3 > 0) & (c3 > 0)) {
+	  do UI.paintSquare(l3, c3);
+	}
+
+	return;
+  }
+
+  method void erase() {
+	var int l, c, i;
+
+	let i = 0;
+	while (i < 8) {
+	  let l = p[i];
+	  let c = p[i + 1];
+	  let i = i + 2;
+	  if ((l > 0) & (c > 0)) {
+		do UI.paintSquareBackground(l, c);
+	  }
+	}
+
+	return;
+  }
+
+  /**@private*/
+  method void erase1(int l, int c) {
+	if ((l > 0) & (c > 0)) {
+	  do UI.paintSquareBackground(l, c);
+	}
+	return;
+  }
+
+  /**@private*/
+  method void erase2(int l1, int c1, int l2, int c2) {
+	if ((l1 > 0) & (c1 > 0)) {
+	  do UI.paintSquareBackground(l1, c1);
+	}
+
+	if ((l2 > 0) & (c2 > 0)) {
+	  do UI.paintSquareBackground(l2, c2);
+	}
+
+	return;
+  }
+
+  /**@private*/
+  method void erase3(int l1, int c1, int l2, int c2, int l3, int c3) {
+	if ((l1 > 0) & (c1 > 0)) {
+	  do UI.paintSquareBackground(l1, c1);
+	}
+
+	if ((l2 > 0) & (c2 > 0)) {
+	  do UI.paintSquareBackground(l2, c2);
+	}
+
+	if ((l3 > 0) & (c3 > 0)) {
+	  do UI.paintSquareBackground(l3, c3);
+	}
+
+	return;
+  }
+
   method void dispose() {
-	do array.dispose();
+	do Memory.deAlloc(this);
 	return;
   }
 }

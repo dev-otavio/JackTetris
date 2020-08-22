@@ -1,12 +1,12 @@
-class S {
+class SInv {
   field Array p;
   field int direction;
   field boolean debug;
 
-  constructor S new(boolean d) {
+  constructor SInv new(boolean d) {
 	let p = Array.new(16);
-	let direction = 0;
 	let debug = d;
+	let direction = 0;
 	return this;
   }
 
@@ -18,10 +18,11 @@ class S {
 	  do Output.printChar(32);
 	  let i = i + 1;
 	}
+
 	let i = direction;
 	let end = i + 8;
 	do Output.moveCursor(10, 20);
-	do Output.printString("S[");
+	do Output.printString("SInv[");
 	while (i < end) {
 	  do Output.printInt(p[i]);
 	  do Output.printChar(32);
@@ -29,39 +30,6 @@ class S {
 	}
 	do Output.printString("]");
 	return;
-  }
-
-  method boolean reset(int l, int c) {
-	var int ok;
-	// horizontal
-	let p[0] = l;
-	let p[1] = c;
-	let p[2] = l;
-	let p[3] = c + 1;
-	let p[4] = l + 1;
-	let p[5] = c;
-	let p[6] = l + 1;
-	let p[7] = c - 1;
-
-	// vertical
-	let p[8] = l - 1;
-	let p[9] = c - 1;
-	let p[10] = l;
-	let p[11] = c - 1;
-	let p[12] = l;
-	let p[13] = c;
-	let p[14] = l + 1;
-	let p[15] = c;
-
-	let direction = 0;
-	let ok = Tetris.allowMovement(p[0], p[1],
-								  p[2], p[3],
-								  p[4], p[5],
-								  p[6], p[7]);
-
-	if (ok) { do paint(); }
-
-	return ok;
   }
 
   method void displace(int v, int h) {
@@ -86,6 +54,39 @@ class S {
 	return;
   }
 
+  method boolean reset(int l, int c) {
+	var boolean ok;
+	// horizontal
+	let p[0] = l;
+	let p[1] = c;
+	let p[2] = l;
+	let p[3] = c - 1;
+	let p[4] = l + 1;
+	let p[5] = c;
+	let p[6] = l + 1;
+	let p[7] = c + 1;
+
+	// vertical
+	let p[8] = l - 1;
+	let p[9] = c + 1;
+	let p[10] = l;
+	let p[11] = c + 1;
+	let p[12] = l;
+	let p[13] = c;
+	let p[14] = l + 1;
+	let p[15] = c;
+
+	let direction = 0;
+	let ok = Tetris.allowMovement(p[0], p[1],
+								  p[2], p[3],
+								  p[4], p[5],
+								  p[6], p[7]);
+
+	if (ok) { do paint(); }
+
+	return ok;
+  }
+
   method boolean rotate() {
 	var boolean ok, horizontal;
 	var int i;
@@ -96,13 +97,13 @@ class S {
 	} else {
 	  let i = 0;
 	}
+
 	let ok = Tetris.allowMovement(p[i],     p[1 + i],
 								  p[2 + i], p[3 + i],
 								  p[4 + i], p[5 + i],
 								  p[6 + i], p[7 + i]);
 
 	if (ok) {
-
 	  if (horizontal) {
 		do erase2(p[2], p[3], p[6], p[7]);
 	  } else {
@@ -115,11 +116,11 @@ class S {
 		let direction = 0;
 	  }
 	  if (debug) { do inspect(); }
-
+	  
 	  if (horizontal) {
 		do paint2(p[8], p[9], p[10], p[11]);
 	  } else {
-		do paint2(p[2], p[3], p[6], p[7]);	
+		do paint2(p[2], p[3], p[6], p[7]);
 	  }
 	}
 
@@ -145,7 +146,7 @@ class S {
 
 	  do displace(1, 0);
 	  if (debug) { do inspect(); }
-
+	  
 	  if (horizontal) {
 		do paint3(p[2], p[3], p[4], p[5], p[6], p[7]);
 	  } else {
@@ -167,20 +168,19 @@ class S {
 
 	if (ok) {
 	  if (horizontal) {
-		do erase3(p[2], p[3], p[4], p[5], p[6], p[7]);
+		do erase3(p[0], p[1], p[2], p[3], p[6], p[7]);
 	  } else {
-		do erase3(p[8], p[9], p[12], p[13], p[14], p[15]);
+		do erase3(p[8], p[9], p[10], p[11], p[14], p[15]);
 	  }
 
 	  do displace(0, -1);
 	  if (debug) { do inspect(); }
 
 	  if (horizontal) {
-		do paint3(p[0], p[1], p[4], p[5], p[6], p[7]);
+		do paint3(p[0], p[1], p[2], p[3], p[4], p[5]);
 	  } else {
-		do paint3(p[8], p[9], p[10], p[11], p[14], p[15]);
+		do paint3(p[8], p[9], p[12], p[13], p[14], p[15]);
 	  }
-
 	}
 
 	return ok;
@@ -197,18 +197,19 @@ class S {
 
 	if (ok) {
 	  if (horizontal) {
-		do erase3(p[0], p[1], p[2], p[3], p[6], p[7]);
+
+		do erase3(p[0], p[1], p[2], p[3], p[4], p[5]);
 	  } else {
-		do erase3(p[8], p[9], p[10], p[11], p[14], p[15]);
+		do erase3(p[8], p[9], p[12], p[13], p[14], p[15]);
 	  }
 
 	  do displace(0, 1);
 	  if (debug) { do inspect(); }
-	  
+
 	  if (horizontal) {
-		do paint3(p[0], p[1], p[2], p[3], p[4], p[5]);
+		do paint3(p[0], p[1], p[2], p[3], p[6], p[7]);
 	  } else {
-		do paint3(p[8], p[9], p[12], p[13], p[14], p[15]);
+		do paint3(p[8], p[9], p[10], p[11], p[14], p[15]);
 	  }
 	}
 

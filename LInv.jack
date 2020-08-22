@@ -1,10 +1,10 @@
-class L {
+class LInv {
   field Array p;
   field int direction;
   field int south, west, north, east;
   field boolean debug;
 
-  constructor L new(boolean d) {
+  constructor LInv new(boolean d) {
 	let p = Array.new(32);
 	let debug = d;
 
@@ -18,18 +18,18 @@ class L {
 
   method void inspect() {
 	var int i, end;
-
 	do Output.moveCursor(10, 20);
 	let i = 20;
 	while (i < 64) {
 	  do Output.printChar(32);
+
 	  let i = i + 1;
 	}
-	
+
 	let i = direction;
 	let end = i + 8;
 	do Output.moveCursor(10, 20);
-	do Output.printString("L[");
+	do Output.printString("LInv[");
 	while (i < end) {
 	  do Output.printInt(p[i]);
 	  do Output.printChar(32);
@@ -57,18 +57,18 @@ class L {
 	let p[0] = line - 1;
 	let p[1] = column;
 	let p[2] = line;
-	let p[3] = column - 2;
+	let p[3] = column;
 	let p[4] = line;
-	let p[5] = column - 1;
+	let p[5] = column + 1;
 	let p[6] = line;
-	let p[7] = column;
+	let p[7] = column + 2;
 
 	//west
-	let p[8] = line - 2;
+	let p[8] = line;
 	let p[9] = column;
-	let p[10] = line - 1;
+	let p[10] = line + 1;
 	let p[11] = column;
-	let p[12] = line;
+	let p[12] = line + 2;
 	let p[13] = column;
 	let p[14] = line;
 	let p[15] = column + 1;
@@ -77,9 +77,9 @@ class L {
 	let p[16] = line;
 	let p[17] = column;
 	let p[18] = line;
-	let p[19] = column + 1;
+	let p[19] = column - 1;
 	let p[20] = line;
-	let p[21] = column + 2;
+	let p[21] = column - 2;
 	let p[22] = line + 1;
 	let p[23] = column;
 
@@ -88,9 +88,9 @@ class L {
 	let p[25] = column - 1;
 	let p[26] = line;
 	let p[27] = column;
-	let p[28] = line + 1;
+	let p[28] = line - 1;
 	let p[29] = column;
-	let p[30] = line + 2;
+	let p[30] = line - 2;
 	let p[31] = column;
 
 	let direction = south;
@@ -100,6 +100,7 @@ class L {
 								  p[6], p[7]);
 
 	if (ok) { do paint(); }
+
 	return ok;
   }
 
@@ -117,12 +118,12 @@ class L {
 		if (direction = north) {
 		  let i = east;
 		} else {
-		  if (direction = east) {
+		  if (east) {
 			let i = south;
 		  } else {
 			do Sys.error(-255);
 		  }
-		} 
+		}
 	  }
 	}
 
@@ -134,16 +135,16 @@ class L {
 	if (ok) {
 	  // erase
 	  if (direction = south) {
-		do erase2(p[2], p[3], p[4], p[5]);
+		do erase2(p[0], p[1], p[6], p[7]);
 	  } else {
 		if (direction = west) {
-		  do erase2(p[8], p[9], p[10], p[11]);
+		  do erase2(p[12], p[13], p[14], p[15]);
 		} else {
 		  if (direction = north) {
-			do erase2(p[18], p[19], p[20], p[21]);
+			do erase2(p[20], p[21], p[22], p[23]);
 		  } else {
 			if (direction = east) {
-			  do erase2(p[28], p[29], p[30], p[31]);
+			  do erase2(p[24], p[25], p[30], p[31]);
 			}
 		  }
 		}
@@ -156,19 +157,19 @@ class L {
 		let direction = direction + 8;
 	  }
 	  if (debug) { do inspect(); }
-
+	  
 	  // repaint
 	  if (direction = south) {
-		do paint2(p[0], p[1], p[2], p[3]);
+		do paint2(p[4], p[5], p[6], p[7]);
 	  } else {
 		if (direction = west) {
-		  do paint2(p[8], p[9], p[14], p[15]);
+		  do paint2(p[10], p[11], p[12], p[13]);
 		} else {
 		  if (direction = north) {
-			do paint2(p[20], p[21], p[22], p[23]);
+			do paint2(p[18], p[19], p[20], p[21]);
 		  } else {
 			if (direction = east) {
-			  do paint2(p[24], p[25], p[30], p[31]);
+			  do paint2(p[28], p[29], p[30], p[31]);
 			}
 		  }
 		}
@@ -189,7 +190,7 @@ class L {
 	if (ok) {
 	  //erase
 	  if (direction = south) {
-		do erase3(p[0], p[1], p[2], p[3], p[4], p[5]);
+		do erase3(p[0], p[1], p[4], p[5], p[6], p[7]);
 	  } else {
 		if (direction = west) {
 		  do erase2(p[8], p[9], p[14], p[15]);
@@ -198,15 +199,16 @@ class L {
 			do erase3(p[16], p[17], p[18], p[19], p[20], p[21]);
 		  } else {
 			if (direction = east) {
-			  do erase2(p[24], p[25], p[26], p[27]);
+			  do erase2(p[24], p[25], p[30], p[31]);
 			}
 		  }
 		}
 	  }
+
 	  //update
 	  do displace(1, 0);
 	  if (debug) { do inspect(); }
-	  
+
 	  //repaint
 	  if (direction = south) {
 		do paint3(p[2], p[3], p[4], p[5], p[6], p[7]);
@@ -218,7 +220,7 @@ class L {
 			do paint3(p[18], p[19], p[20], p[21], p[22], p[23]);
 		  } else {
 			if (direction = east) {
-			  do paint2(p[24], p[25], p[30], p[31]);
+			  do paint2(p[24], p[25], p[26], p[27]);
 			}
 		  }
 		}
@@ -242,10 +244,10 @@ class L {
 		do erase2(p[0], p[1], p[6], p[7]);
 	  } else {
 		if (direction = west) {
-		  do erase3(p[8], p[9], p[10], p[11], p[14], p[15]);
+		  do erase3(p[10], p[11], p[12], p[13], p[14], p[15]);
 		} else {
 		  if (direction = north) {
-			do erase2(p[20], p[21], p[22], p[23]);
+			do erase2(p[16], p[17], p[22], p[23]);
 		  } else {
 			if (direction = east) {
 			  do erase3(p[26], p[27], p[28], p[29], p[30], p[31]);
@@ -253,6 +255,7 @@ class L {
 		  }
 		}
 	  }
+
 	  //update
 	  do displace(0, -1);
 	  if (debug) { do inspect(); }
@@ -265,7 +268,7 @@ class L {
 		  do paint3(p[8], p[9], p[10], p[11], p[12], p[13]);
 		} else {
 		  if (direction = north) {
-			do paint2(p[16], p[17], p[22], p[23]);
+			do paint2(p[20], p[21], p[22], p[23]);
 		  } else {
 			if (direction = east) {
 			  do paint3(p[24], p[25], p[28], p[29], p[30], p[31]);
@@ -294,7 +297,7 @@ class L {
 		  do erase3(p[8], p[9], p[10], p[11], p[12], p[13]);
 		} else {
 		  if (direction = north) {
-			do erase2(p[16], p[17], p[22], p[23]);
+			do erase2(p[20], p[21], p[22], p[23]);
 		  } else {
 			if (direction = east) {
 			  do erase3(p[24], p[25], p[28], p[29], p[30], p[31]);
@@ -312,10 +315,10 @@ class L {
 		do paint2(p[0], p[1], p[6], p[7]);
 	  } else {
 		if (direction = west) {
-		  do paint3(p[8], p[9], p[10], p[11], p[14], p[15]);
+		  do paint3(p[10], p[11], p[12], p[13], p[14], p[15]);
 		} else {
 		  if (direction = north) {
-			do paint2(p[20], p[21], p[22], p[23]);
+			do paint2(p[16], p[17], p[22], p[23]);
 		  } else {
 			if (direction = east) {
 			  do paint3(p[26], p[27], p[28], p[29], p[30], p[31]);

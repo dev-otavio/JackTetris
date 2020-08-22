@@ -1,48 +1,26 @@
 class Tetris {
-  field Grid grid;
-  field Bar bar;
-  field Box box;
-  field SNeg sneg;
-  field S s;
-  field T t;
-  field LNeg lneg;
-  field L l;
-  field int
-	lines,
-	columns,
-	size,
-	topOffset,
-	squareUnit,
-	interval,
-	blockTypes,
-	currentBlock,
-	points,
-	seed;
 
-  constructor Tetris new() {
-	let points = 0;
-	let blockTypes = 7;
-	let seed = 0;
-	let lines = 16;
-	let topOffset = 32;
-	let columns = 10;
-	let squareUnit = 10;
-	let interval = 400;
-	let size = lines * columns;
-	let grid = Grid.new(lines, columns);
+  // last position that was occupied by the current block
+  static int p1, p2, p3, p4, p5, p6, p7, p8;
+  static boolean debug;
+  static int interval;
+  static int clockCycle, clock;
+  static int points;
+  static int seed;
+  static int currentBlock;
+  static int possibleBlocks;
+  static int lines, columns;
+  static boolean paused;
+  static Grid grid;
+  static Bar bar;
+  static Box box;
+  static S s;
+  static SInv sinv;
+  static T t;
+  static L l;
+  static LInv linv;
 
-	let bar = Bar.new(this, 1, 5);
-	let box = Box.new(this, 1, 5);
-	let sneg = SNeg.new(this, 1, 5);
-	let s = S.new(this, 1, 5);
-	let t = T.new(this, 1, 5);
-	let lneg = LNeg.new(this, 1, 5);
-	let l = L.new(this, 1, 5);
-
-	return this;
-  }
-
-  method void incrementSeed() {
+  function void incrementSeed() {
 	if (seed = 32666) {
 	  let seed = 1;
 	} else {
@@ -51,372 +29,410 @@ class Tetris {
 	return;
   }
 
-  method void startLoop() {
+  function void loop() {
 	var char c;
+	let clock = 0;
+	let paused = false;
 
-	do show();
-	do nextBlock();
+	while (~paused) {
 
-	while (true) {
-	  do incrementSeed();
+	  do Sys.wait(clockCycle);
+	  do Tetris.tick();
+	  if (clock & (Mathx.mod(clock, interval) = 0)) {
+		// fall
+		do Tetris.moveDown();
+	  }
+
 
 	  let c = Keyboard.keyPressed();
-
-	  if (c = 140) {
-		do terminate();
-	  }
 	  if (c = 130) {
-		do moveBlockLeft();
-		do incrementSeed();
+		do Tetris.moveLeft();
+	  } else {
+		if (c = 131) {
+		  do Tetris.rotate();
+		} else {
+		  if (c = 132) {
+			do Tetris.moveRight();
+		  } else {
+			if (c = 133) {
+			  do Tetris.moveDown();
+			} else {
+			  if (c = 140) {
+				do Tetris.terminate("Esc key was pressed. Terminated.");
+			  }
+			}
+		  }
+		}
 	  }
-	  if (c = 131) {
-		do rotateBlock();
-		do incrementSeed();
-	  }
-	  if (c = 132) {
-	  	do moveBlockRight();
-		do incrementSeed();
-	  }
-	  if (c = 133) {
-		do moveBlockDown();
-		do incrementSeed();
-	  }
-	  do Sys.wait(interval);
-	  do moveBlockDown();
-	}
+	} // endif c
 
 	return;
   }
 
-  method void terminate() {
-	do showGameOver();
+  function void terminate(String message) {
+	do Output.moveCursor(22, 20);
+	do Output.printString(message);
 	do Sys.halt();
 	return;
   }
 
-  method boolean doesItWillFit(Array position) {
-	var int i, line, column;
+  function void pause() {
+	let paused = true;
+	return;
+  }
 
-	let i = 0;
-	while (i < 8) {
-	  let line = position[i];
-	  let column = position[i + 1];
-
-	  if (line > lines) { return false; }
-	  if (column < 1) { return false; }
-	  if (column > columns) { return false; }
-	  if (line > 0) {
-		// A block might have part of it out of the top of the screen
-		if (grid.getAt(line, column)) { return false; }
+  function void repaint(int l) {
+	var int any, c, v;
+	while (l > 0) {
+	  let any = 0;
+	  let c = 10;
+	  while (c > 0) {
+		let v = grid.getAt(l, c);
+		let any = any | v;
+		if (v) {
+		  do UI.paintSquare(l, c);
+		} else {
+		  do UI.paintSquareBackground(l, c);
+		}
+		let c = c - 1;
+	  } // endwhile c
+	  if (~any) {
+		// all empty above this line, no repainting needed
+		return;
 	  }
+	  let l = l - 1;
+	} //endwhile l
+	return;
+  }
 
+  function int collapse(int l) {
+	var int full, any, c, v, mod;
+	while (l > 0) {
+	  let full = -1;
+	  let any = 0;
+	  let c = 10;
 
-	  let i = i + 2;
+	  while (c > 0) {
+		let v = grid.getAt(l, c);
+		let full = full & v;
+		let any = any | v;
+		let c = c - 1;
+	  } // endwhile c
+	  if (full) {
+		do grid.collapse(l);
+		do Tetris.repaint(l);
+		return l;
+	  } else {
+		if (~any) {
+		  // all empty above this line, early return.
+		  return 0;
+		}
+	  }
+	  let l = l - 1;
+	} //endwhile l
+
+	return 0;
+  }
+
+  function void start(boolean d) {
+	let debug = d;
+	let seed = 0;
+	let lines = 16;
+	let columns = 10;
+	let paused = true;
+	let clockCycle = 100;
+	let interval = 400;
+	let points = 0;
+	let possibleBlocks = 7;
+
+	let grid = Grid.new(lines, columns);
+	let bar = Bar.new(debug);
+	let box = Box.new(debug);
+	let s = S.new(debug);
+	let sinv = SInv.new(debug);
+	let t = T.new(debug);
+	let l = L.new(debug);
+	let linv = LInv.new(debug);
+
+	do UI.paintBackground();
+	do Tetris.printInfo();
+	do Tetris.nextBlock();
+	return;
+  }
+
+  function boolean allowMovement(int l1, int c1, int l2, int c2, int l3, int c3, int l4, int c4) {
+
+	if (l1 > lines) { return false; }
+	if (l2 > lines) { return false; }
+	if (l3 > lines) { return false; }
+	if (l4 > lines) { return false; }
+
+	if (c1 > columns) { return false; }
+	if (c1 < 1) { return false; }
+	if (c2 > columns) { return false; }
+	if (c2 < 1) { return false; }
+	if (c3 > columns) { return false; }
+	if (c3 < 1) { return false; }
+	if (c4 > columns) { return false; }
+	if (c4 < 1) { return false; }
+
+	// A non positive l is valid but will raise error if passed to getAt.
+	if (l1 > 0) {
+	  if (grid.getAt(l1, c1)) {
+		return false;
+	  }
 	}
+	if (l2 > 0) {
+	  if (grid.getAt(l2, c2)) { return false; }
+	}
+	if (l3 > 0) {
+	  if(grid.getAt(l3, c3)) { return false; }
+	}
+	if (l4 > 0) {
+	  if (grid.getAt(l4, c4)) { return false; }
+	}
+
+	let p1 = l1;
+	let p2 = c1;
+	let p3 = l2;
+	let p4 = c2;
+	let p5 = l3;
+	let p6 = c3;
+	let p7 = l4;
+	let p8 = c4;
 
 	return true;
   }
 
-  method void removeLastFullLine() {
-	var int line, column;
-	var boolean full;
-
-	let line = lines;
-	while (line > 0) {
-	  let full = true;
-	  let column = columns;
-
-	  while (full & (column > 0)) {
-		if (~grid.getAt(line, column)) {
-		  let full = false;
-		}
-		let column = column - 1;
-	  }
-
-	  if (full) {
-		do grid.removeLine(line);
-		let points = points + 100;
-
-		if (Mathx.mod(points, 1000) = 0) {
-		  if (interval > 100) {
-			let interval = interval - 25;
+  function void moveLeft() {
+	do Tetris.incrementSeed();
+	if (currentBlock = 0) {
+	  do bar.moveLeft();
+    } else {
+	  if (currentBlock = 1) {
+		do box.moveLeft();
+	  } else {
+		if (currentBlock = 2) {
+		  do sinv.moveLeft();
+		} else {
+		  if (currentBlock = 3) {
+			do s.moveLeft();
+		  } else {
+			if (currentBlock = 4) {
+			  do t.moveLeft();
+			} else { 
+			  if (currentBlock = 5) {
+				do linv.moveLeft();
+			  } else {
+				if (currentBlock = 6) {
+				  do l.moveLeft();
+				}
+			  }
+			}
 		  }
 		}
+	  }
+	} // endif currentBlock
+    return;
+  }
 
-		if (points > 31000) {
-		  do Output.printString("YOU HAVE WON!");
-		  do terminate();
+  function void moveRight() {
+	do Tetris.incrementSeed();
+	if (currentBlock = 0) {
+	  do bar.moveRight();
+    } else {
+	  if (currentBlock = 1) {
+		do box.moveRight();
+	  } else {
+		if (currentBlock = 2) {
+		  do sinv.moveRight();
+		} else {
+		  if (currentBlock = 3) {
+			do s.moveRight();
+		  } else {
+			if (currentBlock = 4) {
+			  do t.moveRight();
+			} else { 
+			  if (currentBlock = 5) {
+				do linv.moveRight();
+			  } else {
+				if (currentBlock = 6) {
+				  do l.moveRight();
+				}
+			  }
+			}
+		  }
 		}
-
-		do show();
-		do Sys.wait(50);
-		do removeLastFullLine();
 	  }
-
-	  let line = line - 1;
 	}
 
 	return;
   }
 
-  method void nextBlock() {
-	var Array p;
+  function void moveDown() {
+	var int line, mod;
+	var boolean ok;
 
-	let currentBlock = Mathx.getReallyNaiveRandom(seed, blockTypes);
+	do Tetris.incrementSeed();
+	if (currentBlock = 0) {
+	  let ok = bar.moveDown();
+    } else {
+	  if (currentBlock = 1) {
+		let ok = box.moveDown();
+	  } else {
+		if (currentBlock = 2) {
+		  let ok = sinv.moveDown();
+		} else {
+		  if (currentBlock = 3) {
+			let ok = s.moveDown();
+		  } else {
+			if (currentBlock = 4) {
+			  let ok = t.moveDown();
+			} else { 
+			  if (currentBlock = 5) {
+				let ok = linv.moveDown();
+			  } else {
+				if (currentBlock = 6) {
+				  let ok = l.moveDown();
+				} else {
+				  do Sys.error(-999);
+				}
+			  }
+			}
+		  }
+		}
+	  }
+	}
+
+	if (~ok) {
+	  do Tetris.pause();
+	  do Tetris.lock();
+
+	  let line = Tetris.collapse(16);
+	  while (line > 0) {
+		let points = points + 100;
+		let mod = Mathx.mod(points, 1000) = 0;
+		if (mod & (interval > 100)) {
+		  let interval = interval - 100;
+		}
+		let line =  Tetris.collapse(line);
+	  }
+	  do Tetris.printInfo();
+	  do Tetris.nextBlock();
+	}
+	return;
+  }
+  
+  function void rotate() {
+	do Tetris.incrementSeed();
 
 	if (currentBlock = 0) {
-	  do bar.resetPosition();
-	  let p = bar.getPosition();
-	}
-	if (currentBlock = 1) {
-	  do box.resetPosition();
-	  let p = box.getPosition();
-	}
-	if (currentBlock = 2) {
-	  do sneg.resetPosition();
-	  let p = sneg.getPosition();
-	}
-	if (currentBlock = 3) {
-	  do s.resetPosition();
-	  let p = s.getPosition();
-	}
-	if (currentBlock = 4) {
-	  do t.resetPosition();
-	  let p = t.getPosition();
-	}
-	if (currentBlock = 5) {
-	  do lneg.resetPosition();
-	  let p = lneg.getPosition();
-	}
-	if (currentBlock = 6) {
-	  do l.resetPosition();
-	  let p = l.getPosition();
+	  do bar.rotate();
+    } else {
+	  if (currentBlock = 1) {
+		do box.rotate();
+	  } else {
+		if (currentBlock = 2) {
+		  do sinv.rotate();
+		} else {
+		  if (currentBlock = 3) {
+			do s.rotate();
+		  } else {
+			if (currentBlock = 4) {
+			  do t.rotate();
+			} else { 
+			  if (currentBlock = 5) {
+				do linv.rotate();
+			  } else {
+				if (currentBlock = 6) {
+				  do l.rotate();
+				}
+			  }
+			}
+		  }
+		}
+	  }
 	}
 
-	if (~doesItWillFit(p)) {
-	  do terminate();
+	return;
+  }
+
+  function void nextBlock() {
+	var boolean ok;
+	var int il, ic;
+	let il = 1;
+	let ic = 5;
+
+	let currentBlock = Mathx.getNaiveRandom(seed, possibleBlocks);
+
+	if (debug) {
+	  do Output.moveCursor(2, 20);
+	  do Output.printString("BLOCK: ");
+	  do Output.printInt(currentBlock);
+	}
+
+	if (currentBlock = 0) {
+	  let ok =  bar.reset(il, ic);
 	} else {
-	  do showBlock(p);
-	}
-	return;
-  }
-
-  method void lockBlock(Array p) {
-	var int i, line, column;
-	let i = 0;
-	while (i < 8) {
-	  let line = p[i];
-	  let column = p[i + 1];
-	  do grid.setAt(line, column, -1);
-	  let i = i + 2;
-	}
-	return;
-  }
-
-  method void rotateBlock() {
-	if (currentBlock = 0) { do bar.rotate(); }
-	if (currentBlock = 1) { do box.rotate(); }
-	if (currentBlock = 2) { do sneg.rotate(); }
-	if (currentBlock = 3) { do s.rotate(); }
-	if (currentBlock = 4) { do t.rotate(); }
-	if (currentBlock = 5) { do lneg.rotate(); }
-	if (currentBlock = 6) { do l.rotate(); }
-	return;
-  }
-
-  method void moveBlockDown() {
-	var Array p;
-	var boolean hasMoved;
-	if (currentBlock = 0) {
-	  let hasMoved = bar.moveDown();
-	  let p = bar.getPosition();
-	}
-	if (currentBlock = 1) {
-	  let hasMoved = box.moveDown();
-	  let p = box.getPosition();
-	}
-	if (currentBlock = 2) {
-	  let hasMoved = sneg.moveDown();
-	  let p = sneg.getPosition();
-	}
-	if (currentBlock = 3) {
-	  let hasMoved = s.moveDown();
-	  let p = s.getPosition();
-	}
-	if (currentBlock = 4) {
-	  let hasMoved = t.moveDown();
-	  let p = t.getPosition();
-	}
-	if (currentBlock = 5) {
-	  let hasMoved = lneg.moveDown();
-	  let p = lneg.getPosition();
-	}
-	if (currentBlock = 6) {
-	  let hasMoved = l.moveDown();
-	  let p = l.getPosition();
-	}
-
-	if (~hasMoved) {
-	  do lockBlock(p);
-	  do removeLastFullLine();
-	  do show();
-	  do nextBlock();
-	}
-
-	return;
-  }
-
-  method void moveBlockLeft() {
-	if (currentBlock = 0) { do bar.moveLeft(); }
-	if (currentBlock = 1) { do box.moveLeft(); }
-	if (currentBlock = 2) { do sneg.moveLeft(); }
-	if (currentBlock = 3) { do s.moveLeft(); }
-	if (currentBlock = 4) { do t.moveLeft(); }
-	if (currentBlock = 5) { do lneg.moveLeft(); }
-	if (currentBlock = 6) { do l.moveLeft(); }
-	return;
-  }
-
-  method void moveBlockRight() {
-	if (currentBlock = 0) { do bar.moveRight(); }
-	if (currentBlock = 1) { do box.moveRight(); }
-	if (currentBlock = 2) { do sneg.moveRight(); }
-	if (currentBlock = 3) { do s.moveRight(); }
-	if (currentBlock = 4) { do t.moveRight(); }
-	if (currentBlock = 5) { do lneg.moveRight(); }
-	if (currentBlock = 6) { do l.moveRight(); }
-	return;
-  }
-
-  method void printGrid() {
-	do grid.print();
-	return;
-  }
-
-  method void show() {
-	var int l, c;
-	var boolean color;
-
-	let l = 1;
-	while (l < (grid.getLines() + 1)) {
-	  let c = 1;
-	  while (c < (grid.getColumns() + 1)) {
-
-		let color = ~(grid.getAt(l, c));
-
-		do Screen.setColor(color);
-		do drawRectangle(l, c, color);
-		let c = c + 1;
-
+	  if (currentBlock = 1) {
+		let ok =  box.reset(il, ic);
+	  } else {
+		if (currentBlock = 2) {
+		  let ok =  sinv.reset(il, ic);
+		} else {
+		  if (currentBlock = 3) {
+			let ok =  s.reset(il, ic);
+		  } else {
+			if (currentBlock = 4) {
+			  let ok =  t.reset(il, ic);
+			} else {
+			  if (currentBlock = 5) {
+				let ok =  linv.reset(il, ic);
+			  } else {
+				if (currentBlock = 6) {
+				  let ok =  l.reset(il, ic);
+				} else {
+				  do Sys.error(-666);
+				}
+			  }
+			}
+		  }
+		}
 	  }
-	  let l = l + 1;
-	}
+	}// endif currentBlock
 
-	do showPoints();
-	return;
-  }
-
-  method void drawRectangle(int line, int column, boolean color) {
-	var int
-	  xTopLeft,
-	  xTopRight,
-	  xBottomLeft,
-	  xBottomRight,
-	  yTopLeft,
-	  yTopRight,
-	  yBottomLeft,
-	  yBottomRight;
-
-	let xTopLeft = (column - 1) * squareUnit;
-	let xTopRight = column * squareUnit;
-	let xBottomLeft = xTopLeft;
-	let xBottomRight = xTopRight;
-
-	let yTopLeft = ((line - 1) * squareUnit) + topOffset;
-	let yTopRight = yTopLeft;
-	let yBottomLeft = ((line) * squareUnit) + topOffset;
-	let yBottomRight = yBottomLeft;
-
-	//print surface
-	do Screen.drawRectangle(xTopLeft, yTopLeft, xBottomRight, yBottomRight);
-	if (~color) {
-	  //print border
-	  do Screen.setColor(true);
-	  do Screen.drawLine(xTopLeft, yTopLeft, xTopRight, yTopRight);
-	  do Screen.drawLine(xBottomLeft, yBottomLeft, xBottomRight, yBottomRight);
-	  do Screen.drawLine(xTopLeft, yTopLeft, xBottomLeft, yBottomLeft);
-	  do Screen.drawLine(xTopRight, yTopRight, xBottomRight, yBottomRight);
+	if (ok) {
+	  do Tetris.loop();
+	} else {
+	  do Tetris.terminate("No more Space Available.");
 	}
 	return;
   }
 
-  method void eraseBlock(Array position) {
-	var int i, line, column;
-
-	let i = 0;
-	while (i < 8) {
-	  let line = position[i];
-	  let column = position[i + 1];
-
-	  if ((line > 0) & (column > 0)) {
-		do Screen.setColor(true);
-		do drawRectangle(line, column, true);
-	  }
-
-	  let i = i + 2;
-	}
-
+  function void lock() {
+	do grid.setAt(p1, p2, -1);
+	do grid.setAt(p3, p4, -1);
+	do grid.setAt(p5, p6, -1);
+	do grid.setAt(p7, p8, -1);
 	return;
   }
 
-  method void showBlock(Array position) {
-	var int i, line, column;
-	let i = 0;
-	while (i < 8) {
-	  let line = position[i];
-	  let column = position[i + 1];
-
-	  if ((line > 0) & (column > 0)) {
-		do Screen.setColor(false);
-		do drawRectangle(line, column, false);
-	  }
-
-	  let i = i + 2;
-	}
-
-	return;
-  }
-
-  method void showPoints() {
-	do Output.moveCursor(0, 0);
-	do Output.printString("                                      ");
-	do Output.moveCursor(0, 0);
+  function void printInfo(){
+	do Output.moveCursor(0, 20);
 	do Output.printString("POINTS: ");
 	do Output.printInt(points);
-	do Output.println();
+
+	if (debug) {
+	  do Output.moveCursor(1, 20);
+	  do Output.printString("INTERVAL: ");
+	  do Output.printInt(interval);
+	  do Output.printString("ms.");
+	}
 	return;
   }
 
-  method void showGameOver () {
-	var int i, j;
-	let i = 1600;
-	let j = 898;
-	do PaintG.draw(i);
-	do PaintA.draw(i + 1);
-	do PaintM.draw(i + 2);
-	do PaintE.draw(i + 3);
-
-	do PaintO.draw(i + j);
-	do PaintV.draw(i + j + 1);
-	do PaintE.draw(i + j + 2);
-	do PaintR.draw(i + j + 3);
-
-	return;
-  }
-
-  method void dispose() {
-	do grid.dispose();
-	do bar.dispose();
+  function void tick() {
+	let clock = clock + clockCycle; 
 	return;
   }
 }
