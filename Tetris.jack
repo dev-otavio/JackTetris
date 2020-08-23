@@ -10,7 +10,6 @@ class Tetris {
   static int currentBlock;
   static int possibleBlocks;
   static int lines, columns;
-  static boolean paused;
   static Grid grid;
   static Bar bar;
   static Box box;
@@ -29,55 +28,10 @@ class Tetris {
 	return;
   }
 
-  function void loop() {
-	var char c;
-	let clock = 0;
-	let paused = false;
-
-	while (~paused) {
-
-	  do Sys.wait(clockCycle);
-	  do Tetris.tick();
-	  if (clock & (Mathx.mod(clock, interval) = 0)) {
-		// fall
-		do Tetris.moveDown();
-	  }
-
-
-	  let c = Keyboard.keyPressed();
-	  if (c = 130) {
-		do Tetris.moveLeft();
-	  } else {
-		if (c = 131) {
-		  do Tetris.rotate();
-		} else {
-		  if (c = 132) {
-			do Tetris.moveRight();
-		  } else {
-			if (c = 133) {
-			  do Tetris.moveDown();
-			} else {
-			  if (c = 140) {
-				do Tetris.terminate("Esc key was pressed. Terminated.");
-			  }
-			}
-		  }
-		}
-	  }
-	} // endif c
-
-	return;
-  }
-
   function void terminate(String message) {
 	do Output.moveCursor(22, 20);
 	do Output.printString(message);
 	do Sys.halt();
-	return;
-  }
-
-  function void pause() {
-	let paused = true;
 	return;
   }
 
@@ -135,11 +89,12 @@ class Tetris {
   }
 
   function void start(boolean d) {
+	var char c;
+
 	let debug = d;
 	let seed = 0;
 	let lines = 16;
 	let columns = 10;
-	let paused = true;
 	let clockCycle = 100;
 	let interval = 400;
 	let points = 0;
@@ -157,6 +112,44 @@ class Tetris {
 	do UI.paintBackground();
 	do Tetris.printInfo();
 	do Tetris.nextBlock();
+
+
+	let clock = 0;
+	while (true) {
+	  do Tetris.tick();
+
+	  if (debug) {
+		do Output.moveCursor(3, 20);
+		do Output.printString("Clock: ~");
+		do Output.printInt(clock);
+		do Output.printString("ms.");
+	  }
+
+	  if (clock & (Mathx.mod(clock, interval) = 0)) { do Tetris.moveDown(); }
+
+	  let c = Keyboard.keyPressed();
+	  if (c = 130) {
+		do Tetris.moveLeft();
+	  } else {
+		if (c = 131) {
+		  do Tetris.rotate();
+		} else {
+		  if (c = 132) {
+			do Tetris.moveRight();
+		  } else {
+			if (c = 133) {
+			  do Tetris.moveDown(); // this will halt when no other movement is possible
+			} else {
+			  if (c = 140) {
+				do Tetris.terminate("Esc key was pressed. Terminated.");
+			  }
+			}
+		  }
+		}
+	  } // endif c
+	  do Sys.wait(clockCycle);
+	} //endwhile
+
 	return;
   }
 
@@ -305,7 +298,7 @@ class Tetris {
 	}
 
 	if (~ok) {
-	  do Tetris.pause();
+	  let clock = 0;
 	  do Tetris.lock();
 
 	  let line = Tetris.collapse(16);
@@ -313,7 +306,7 @@ class Tetris {
 		let points = points + 100;
 		let mod = Mathx.mod(points, 1000) = 0;
 		if (mod & (interval > 100)) {
-		  let interval = interval - 100;
+		  let interval = interval - 50;
 		}
 		let line =  Tetris.collapse(line);
 	  }
@@ -322,7 +315,7 @@ class Tetris {
 	}
 	return;
   }
-  
+
   function void rotate() {
 	do Tetris.incrementSeed();
 
@@ -401,9 +394,7 @@ class Tetris {
 	  }
 	}// endif currentBlock
 
-	if (ok) {
-	  do Tetris.loop();
-	} else {
+	if (~ok) {
 	  do Tetris.terminate("No more Space Available.");
 	}
 	return;
@@ -427,6 +418,12 @@ class Tetris {
 	  do Output.printString("INTERVAL: ");
 	  do Output.printInt(interval);
 	  do Output.printString("ms.");
+
+	  do Output.moveCursor(3, 20);
+	  do Output.printString("Clock: ~");
+	  do Output.printInt(clock);
+	  do Output.printString("ms.");
+
 	}
 	return;
   }
